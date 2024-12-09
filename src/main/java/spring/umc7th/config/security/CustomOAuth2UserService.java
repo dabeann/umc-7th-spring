@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import spring.umc7th.domain.Member;
 import spring.umc7th.domain.enums.Gender;
 import spring.umc7th.domain.enums.Role;
+import spring.umc7th.domain.enums.SocialType;
 import spring.umc7th.repository.MemberRepository;
 
 @Service
@@ -26,15 +27,24 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);
+        String provider = userRequest.getClientRegistration().getRegistrationId();
 
         Map<String, Object> attributes = oAuth2User.getAttributes();
-        Map<String, Object> properties = (Map<String, Object>) attributes.get("properties");
+        String email = "null";
+        String nickname = "null";
 
-        String nickname = (String) properties.get("nickname");
-        String email = nickname + "@kakao.com"; // 임시 이메일 생성
+        if (provider.equals("kakao")) {
+            Map<String, Object> properties = (Map<String, Object>) attributes.get("properties");
+
+            nickname = (String) properties.get("nickname");
+            email = nickname + "@kakao.com"; // 임시 이메일 생성
+        } else if (provider.equals("google")) {
+            nickname = (String) attributes.get("name");
+            email = nickname + "@google.com"; // 임시 이메일 생성
+        }
 
         // 사용자 정보 저장 또는 업데이트
-        Member member = saveOrUpdateUser(email, nickname);
+        Member member = saveOrUpdateUser(email, nickname, provider);
 
         // 이메일을 Principal로 사용하기 위해 attributes 수정
         Map<String, Object> modifiedAttributes = new HashMap<>(attributes);
@@ -47,7 +57,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         );
     }
 
-    private Member saveOrUpdateUser(String email, String nickname) {
+    private Member saveOrUpdateUser(String email, String nickname, String provider) {
         Member member = memberRepository.findByEmail(email)
                 .orElse(Member.builder()
                         .email(email)
@@ -56,6 +66,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         .gender(Gender.NONE)  // 기본값 설정
                         .address("소셜로그인")  // 기본값 설정
                         .specAddress("소셜로그인")  // 기본값 설정
+                        .socialType(SocialType.valueOfLowercase(provider))
                         .role(Role.USER)
                         .build());
 

@@ -41,6 +41,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         } else if (provider.equals("google")) {
             nickname = (String) attributes.get("name");
             email = nickname + "@google.com"; // 임시 이메일 생성
+        } else if (provider.equals("naver")) {
+            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
+
+            nickname = (String) response.get("nickname");
+            email = nickname + "@naver.com"; // 임시 이메일 생성
         }
 
         // 사용자 정보 저장 또는 업데이트
